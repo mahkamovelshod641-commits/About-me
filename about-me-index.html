@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elshod Mahkamov — Web Developer</title>
+<style>
+  :root {
+    --bg: #1E1E2E;
+    --bg-sidebar: #181825;
+    --bg-editor: #1E1E2E;
+    --bg-tab: #11111B;
+    --bg-tab-active: #1E1E2E;
+    --line-num: #494D64;
+    --text: #CDD6F4;
+    --text-dim: #6C7086;
+    --keyword: #C792EA;
+    --string: #A6E3A1;
+    --func: #82AAFF;
+    --comment: #6C7086;
+    --property: #F5C2E7;
+    --number: #FAB387;
+    --border: #313244;
+    --cursor: #F5E0DC;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --font-body: 'Inter', -apple-system, sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    overflow-x: hidden;
+  }
+
+  /* Title bar */
+  .titlebar {
+    background: var(--bg-tab);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.red { background: #F38BA8; }
+  .dot.yellow { background: #F9E2AF; }
+  .dot.green { background: #A6E3A1; }
+
+  .titlebar-label {
+    flex: 1;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-right: 60px;
+  }
+
+  /* Main layout */
+  .main-layout {
+    display: flex;
+    flex: 1;
+    min-height: calc(100vh - 32px);
+  }
+
+  /* Sidebar - file explorer */
+  .sidebar {
+    background: var(--bg-sidebar);
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+  }
+
+  .sidebar-title {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 0 16px 10px;
+    text-transform: uppercase;
+  }
+
+  .file-item {
+    padding: 7px 16px 7px 24px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .file-item:hover {
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+  }
+
+  .file-item.active {
+    color: var(--text);
+    background: rgba(130,170,255,0.08);
+    border-left-color: var(--func);
+  }
+
+  .file-icon { color: var(--func); font-size: 12px; }
+
+  /* Editor area */
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--bg-tab);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 10px 18px;
+    color: var(--text-dim);
+    font-size: 13px;
+    background: var(--bg-tab);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .tab.active {
+    background: var(--bg-tab-active);
+    color: var(--text);
+    box-shadow: inset 0 2px 0 var(--func);
+  }
+
+  .tab .file-icon { font-size: 11px; }
+
+  .code-area {
+    flex: 1;
+    display: flex;
+    overflow: auto;
+    padding: 24px 0;
+  }
+
+  .line-numbers {
+    color: var(--line-num);
+    padding: 0 16px 0 20px;
+    text-align: right;
+    user-select: none;
+    line-height: 1.9;
+    font-size: 13px;
+  }
+
+  .code-content {
+    padding-right: 40px;
+    line-height: 1.9;
+    font-size: 13.5px;
+    flex: 1;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .kw { color: var(--keyword); }
+  .str { color: var(--string); }
+  .fn { color: var(--func); }
+  .cm { color: var(--comment); font-style: italic; }
+  .prop { color: var(--property); }
+  .num { color: var(--number); }
+  .txt { color: var(--text); }
+  .punct { color: var(--text-dim); }
+
+  a.inline-link {
+    color: var(--func);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--func);
+  }
+  a.inline-link:hover { color: var(--string); border-bottom-color: var(--string); }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 15px;
+    background: var(--cursor);
+    animation: blink 1s step-start infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Skill bars */
+  .skill-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0;
+    padding-left: 20px;
+  }
+
+  .skill-name { width: 130px; color: var(--text); flex-shrink: 0; }
+  .skill-track {
+    background: var(--bg-tab);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 8px;
+    flex: 1;
+    max-width: 220px;
+    overflow: hidden;
+  }
+  .skill-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--func), var(--keyword));
+    border-radius: 4px;
+    animation: grow 1s ease-out;
+  }
+  @keyframes grow {
+    from { width: 0; }
+  }
+
+  /* Project card */
+  .project-card {
+    margin: 16px 0 16px 20px;
+    padding: 16px 20px;
+    background: var(--bg-tab);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-width: 460px;
+    transition: border-color 0.15s;
+  }
+
+  .project-card:hover { border-color: var(--func); }
+
+  .project-title {
+    color: var(--func);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .project-desc {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    font-family: var(--font-body);
+  }
+
+  .project-link {
+    display: inline-block;
+    color: var(--string);
+    font-size: 12px;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--string);
+  }
+
+  /* Status bar */
+  .statusbar {
+    background: var(--func);
+    color: var(--bg-tab);
+    font-size: 11px;
+    padding: 4px 16px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-body);
+    font-weight: 500;
+  }
+
+  /* Contact section styling */
+  .contact-link {
+    color: var(--string);
+    text-decoration: none;
+  }
+  .contact-link:hover { text-decoration: underline; }
+
+  @media (max-width: 720px) {
+    .sidebar { width: 150px; }
+    .skill-name { width: 90px; font-size: 11px; }
+    .line-numbers { display: none; }
+    .code-content { padding-left: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-blink { animation: none; }
+    .skill-fill { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="titlebar">
+    <div class="dot red"></div>
+    <div class="dot yellow"></div>
+    <div class="dot green"></div>
+    <div class="titlebar-label">elshod-mahkamov — portfolio — Visual Studio Code</div>
+  </div>
+
+  <div class="main-layout">
+    <div class="sidebar">
+      <div class="sidebar-title">Explorer</div>
+      <div class="file-item active" data-target="about">
+        <span class="file-icon">JS</span> about.js
+      </div>
+      <div class="file-item" data-target="skills">
+        <span class="file-icon">JS</span> skills.js
+      </div>
+      <div class="file-item" data-target="projects">
+        <span class="file-icon">JS</span> projects.js
+      </div>
+      <div class="file-item" data-target="contact">
+        <span class="file-icon">JS</span> contact.js
+      </div>
+    </div>
+
+    <div class="editor-area">
+      <div class="tabs">
+        <div class="tab active" data-target="about"><span class="file-icon">JS</span> about.js</div>
+        <div class="tab" data-target="skills"><span class="file-icon">JS</span> skills.js</div>
+        <div class="tab" data-target="projects"><span class="file-icon">JS</span> projects.js</div>
+        <div class="tab" data-target="contact"><span class="file-icon">JS</span> contact.js</div>
+      </div>
+
+      <div class="code-area">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <div class="code-content">
+
+          <!-- ABOUT -->
+          <div class="panel active" id="panel-about">
+<pre><span class="cm">// Xush kelibsiz! Quyida o'zim haqimda qisqacha ma'lumot.</span>
+<span class="kw">const</span> <span class="fn">developer</span> = {
+  <span class="prop">name</span>: <span class="str">"Elshod Mahkamov"</span>,
+  <span class="prop">role</span>: <span class="str">"Web Developer & Freelancer"</span>,
+  <span class="prop">location</span>: <span class="str">"O'zbekiston"</span>,
+  <span class="prop">status</span>: <span class="str">"Loyihalar bilan ishlashga tayyor"</span><span class="cursor-blink"></span>,
+
+  <span class="prop">bio</span>: <span class="str">"Men frontend dasturlash yo'nalishida o'z bilimimni</span>
+       <span class="str">rivojlantirmoqdaman. HTML, CSS va JavaScript orqali</span>
+       <span class="str">funksional va chiroyli veb-saytlar yarataman.</span>
+       <span class="str">Hozirda AI vositalari bilan ishlashni ham o'rganib,</span>
+       <span class="str">ish jarayonimni tezlashtirishga harakat qilyapman."</span>,
+
+  <span class="fn">getGoal</span>() {
+    <span class="kw">return</span> <span class="str">"Freelance platformalarda ishonchli va</span>
+      <span class="str">sifatli natija beruvchi dasturchi bo'lish."</span>;
+  }
+};
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="txt">developer</span>.<span class="fn">getGoal</span>());
+<span class="cm">// → "Freelance platformalarda ishonchli va sifatli natija..."</span></pre>
+          </div>
+
+          <!-- SKILLS -->
+          <div class="panel" id="panel-skills">
+<pre><span class="cm">// Ko'nikmalarim va ularning hozirgi darajasi</span>
+<span class="kw">const</span> <span class="fn">skills</span> = [</pre>
+            <div class="skill-row"><span class="skill-name">HTML / CSS</span><div class="skill-track"><div class="skill-fill" style="width: 80%"></div></div></div>
+            <div class="skill-row"><span class="skill-name">JavaScript</span><div class="skill-track"><div class="skill-fill" style="width: 60%"></div></div></div>
+            <div class="skill-row"><span class="skill-name">Git / GitHub</span><div class="skill-track"><div class="skill-fill" style="width: 55%"></div></div></div>
+            <div class="skill-row"><span class="skill-name">Responsive Design</span><div class="skill-track"><div class="skill-fill" style="width: 65%"></div></div></div>
+            <div class="skill-row"><span class="skill-name">AI Tools</span><div class="skill-track"><div class="skill-fill" style="width: 50%"></div></div></div>
+<pre><span class="txt">];</span>
+
+<span class="cm">// Har kuni o'qib, mashq qilib, yangi loyihalar bilan</span>
+<span class="cm">// ushbu ko'rsatkichlarni oshirib boryapman.</span></pre>
+          </div>
+
+          <!-- PROJECTS -->
+          <div class="panel" id="panel-projects">
+<pre><span class="cm">// Bajarilgan va joriy loyihalarim</span>
+<span class="kw">const</span> <span class="fn">projects</span> = [</pre>
+            <div class="project-card">
+              <div class="project-title">Kun Tartibim</div>
+              <div class="project-desc">Kunlik vazifalar boshqaruvchisi (To-Do List). Vazifa qo'shish, kategoriyalash, bajarilgan deb belgilash va localStorage orqali ma'lumotlarni saqlash imkoniyati bor. HTML, CSS va Vanilla JavaScript'da yozilgan.</div>
+              <a class="project-link" href="https://mahkamovelshod641-commits.github.io/kun-tartibim/" target="_blank" rel="noopener">→ Demo'ni ko'rish</a>
+            </div>
+<pre><span class="txt">];</span>
+
+<span class="cm">// Yangi loyihalar tez orada shu yerga qo'shiladi...</span></pre>
+          </div>
+
+          <!-- CONTACT -->
+          <div class="panel" id="panel-contact">
+<pre><span class="cm">// Men bilan bog'lanish uchun</span>
+<span class="kw">const</span> <span class="fn">contact</span> = {
+  <span class="prop">telegram</span>: <span class="str">"</span><a class="contact-link" href="https://t.me/elshodjoon" target="_blank" rel="noopener">@elshodjoon</a><span class="str">"</span>,
+  <span class="prop">email</span>: <span class="str">"</span><a class="contact-link" href="mailto:mahkamovelshod@gmail.com">mahkamovelshod@gmail.com</a><span class="str">"</span>,
+  <span class="prop">github</span>: <span class="str">"</span><a class="contact-link" href="https://github.com/mahkamovelshod641-commits" target="_blank" rel="noopener">mahkamovelshod641-commits</a><span class="str">"</span>,
+
+  <span class="fn">sayHi</span>() {
+    <span class="kw">return</span> <span class="str">"Loyihangiz bormi? Yozing, birga ko'rib chiqamiz!"</span><span class="cursor-blink"></span>;
+  }
+};</pre>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="statusbar">
+        <span>⎇ main</span>
+        <span id="statusFile">about.js</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const fileItems = document.querySelectorAll('.file-item');
+  const tabItems = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  const statusFile = document.getElementById('statusFile');
+  const lineNumbers = document.getElementById('lineNumbers');
+
+  function switchTo(target) {
+    fileItems.forEach(f => f.classList.toggle('active', f.dataset.target === target));
+    tabItems.forEach(t => t.classList.toggle('active', t.dataset.target === target));
+    panels.forEach(p => p.classList.toggle('active', p.id === `panel-${target}`));
+    statusFile.textContent = `${target}.js`;
+    renderLineNumbers(target);
+  }
+
+  function renderLineNumbers(target) {
+    const panel = document.getElementById(`panel-${target}`);
+    const lines = panel.innerText.split('\n').length;
+    lineNumbers.innerHTML = Array.from({length: Math.max(lines, 14)}, (_, i) => i + 1).join('<br>');
+  }
+
+  fileItems.forEach(item => {
+    item.addEventListener('click', () => switchTo(item.dataset.target));
+  });
+  tabItems.forEach(tab => {
+    tab.addEventListener('click', () => switchTo(tab.dataset.target));
+  });
+
+  renderLineNumbers('about');
+</script>
+</body>
+</html>
